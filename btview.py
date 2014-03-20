@@ -6,12 +6,15 @@ import re, os
 
 _btimporterror = None
 try:
-        from BitTorrent import bencode, btformats
-except ImportError, e1:
-        try:
-                from BitTornado import bencode; from BitTornado.BT1 import btformats
-        except ImportError, e2:
-                _btimporterror = '%s and %s'%(e1,e2)
+    import bencode, btformats
+except ImportError, e0:
+    try:
+            from BitTorrent import bencode, btformats
+    except ImportError, e1:
+            try:
+                    from BitTornado import bencode; from BitTornado.BT1 import btformats
+            except ImportError, e2:
+                    _btimporterror = '%s and %s'%(e1,e2)
 
 def humanbytes(b):
     if b < 10000:
