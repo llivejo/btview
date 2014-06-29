@@ -4,37 +4,41 @@
 import sys, time
 import re, os
 
-_btimporterror = None
+__btimporterror = None
 try:
     import bencode, btformats
-except ImportError, e0:
+except ImportError, err0:
     try:
-            from BitTorrent import bencode, btformats
-    except ImportError, e1:
-            try:
-                    from BitTornado import bencode; from BitTornado.BT1 import btformats
-            except ImportError, e2:
-                    _btimporterror = '%s and %s'%(e1,e2)
+        from BitTorrent import bencode, btformats
+    except ImportError, err1:
+        try:
+            from BitTornado import bencode
+            from BitTornado.BT1 import btformats
+        except ImportError, err2:
+            __btimporterror = '%s and %s' % (err1, err2)
 
-def humanbytes(b):
-    if b < 10000:
-        return "%d bytes" % b
-    elif b < 10000000:
-        return "%d Kbytes" % (b/1000)
-    elif b < 10000000000:
-        return "%d Mbytes" % (b/1000000)
+def humanbytes(inbytes):
+    """
+    NB: not mebibytes, units with zeroes
+    """
+    if inbytes < 10000:
+        return "%d bytes" % inbytes
+    elif inbytes < 10000000:
+        return "%d Kbytes" % (inbytes // 1000)
+    elif inbytes < 10000000000:
+        return "%d Mbytes" % (inbytes // 10**6)
     else:
-        return "%d Gbytes" % (b/1000000000)
+        return "%d Gbytes" % (inbytes // 10**9)
 
 def do_test_chksumfile(torrfile):
-    if _btimporterror:
-        raise EnvironmentError, _btimporterror
+    if __btimporterror:
+        raise EnvironmentError, __btimporterror
     try:
         metainfo = bencode.bdecode(torrfile.read())
         btformats.check_message(metainfo)
         return metainfo
-    except ValueError, e:
-        raise EnvironmentError, str(e) or 'invalid or corrupt torrent'
+    except ValueError, err:
+        raise EnvironmentError, str(err) or 'invalid or corrupt torrent'
 
 def get_if_exist(metainfo, key):
     if metainfo.has_key(key):
@@ -61,11 +65,13 @@ def get_name(info):
         return info['name']
 
 def get_id(name):
-    """Add torrents.ru ID (topic number) to torrent name """
-    p = re.compile(r'\[[a-z]+\.(ru|net|org)\]\.t(\d{6,10})\.torrent')
-    m = p.match(name)
-    if m:
-        return "." + m.group(2)
+    """
+    Add torrents.ru ID (topic number) to torrent name
+    """
+    ptrn = re.compile(r'\[[a-z]+\.(ru|net|org)\]\.t(\d{6,10})\.torrent')
+    match = ptrn.match(name)
+    if match:
+        return "." + match.group(2)
     else:
         return ""
 
@@ -82,18 +88,19 @@ def rename(filename):
 
 def total_size(metainfo):
     """
+    Compute sum of all files' size
     """
     if metainfo.has_key('files'):
         total = 0
-        for f in metainfo['files']:
-            if f.has_key('length'):
-                total += f['length']
+        for infile in metainfo['files']:
+            if infile.has_key('length'):
+                total += infile['length']
         return total
     else:
         return None
 
 def main():
-    if len(sys.argv)>1:
+    if len(sys.argv) > 1:
         if sys.argv[1] == '-r':
             for name in sys.argv[2:]:
                 rename(name)
@@ -120,7 +127,8 @@ def main():
     else:
         print "get info from .torrent metafile"
         print "  usage: %s file.torrent" % sys.argv[0]
-        print "  or     -r [torrents.ru].NNNNNNN.torrent    to rename into proper name"
+        print "  or     -r [torrents.ru].NNNNNNN.torrent    \
+               to rename into proper name"
 
 if __name__ == "__main__":
     main()
